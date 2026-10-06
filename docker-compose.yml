@@ -1,0 +1,45 @@
+version: '3.8'
+services:
+  # Backend FastAPI - Seu OrganizadorPDFv5.py transformado em API
+  api:
+    build: .
+    container_name: precatorio-factory-api
+    ports:
+      - "8000:8000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - ASAAS_API_KEY=${ASAAS_API_KEY}
+      - ASAAS_WEBHOOK_TOKEN=${ASAAS_WEBHOOK_TOKEN}
+      - ENVIRONMENT=production
+    volumes:
+      - ./tmp:/tmp
+    restart: unless-stopped
+    # Auto-delete de arquivos temporários a cada 1h
+    labels:
+      - "auto-delete=24h"
+
+  # Frontend - Seu artefato V6
+  frontend:
+    image: node:18-alpine
+    container_name: precatorio-factory-front
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      - VITE_SUPABASE_URL=${SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - VITE_API_URL=http://api:8000
+    depends_on:
+      - api
+
+  # Redis para fila de processamento de ZIPs grandes
+  redis:
+    image: redis:7-alpine
+    container_name: precatorio-redis
+    ports:
+      - "6379:6379"
+
+# Para deploy em 1 comando: docker-compose up -d
+# Para Railway/Render: só conectar GitHub que ele lê esse arquivo
